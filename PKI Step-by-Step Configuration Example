@@ -1,0 +1,128 @@
+Here's a detailed example configuration for deploying a multi-tier PKI within Microsoft Entra Domain Services using ADCS. This example will include specific commands and settings for setting up a Root CA, Intermediate CA, and Issuing CA.
+
+### Step-by-Step Configuration Example
+
+#### Step 1: Set Up the Root CA
+
+1. **Install Windows Server on a Standalone Machine:**
+   - Install Windows Server on a dedicated, non-domain-joined machine.
+
+2. **Install ADCS Role:**
+   - Open Server Manager, click on "Add roles and features", and select "Active Directory Certificate Services".
+
+3. **Configure ADCS:**
+   - Select "Certification Authority".
+   - Choose "Standalone CA" and "Root CA".
+   - Create a new private key.
+   - Use default cryptographic settings.
+   - Specify a common name for the CA (e.g., `RootCA`).
+   - Set the validity period (e.g., 10 years).
+   - Complete the installation.
+
+4. **Backup Root CA Key and Certificate:**
+   - Open the Certification Authority console.
+   - Right-click the CA name > All Tasks > Backup CA.
+   - Follow the wizard to back up the CA’s private key, certificate, and database to a secure location.
+
+#### Step 2: Set Up the Intermediate CA
+
+1. **Install Windows Server and Join Domain:**
+   - Install Windows Server on a new machine and join it to the domain.
+
+2. **Install ADCS Role:**
+   - Open Server Manager, click on "Add roles and features", and select "Active Directory Certificate Services".
+
+3. **Configure ADCS:**
+   - Select "Certification Authority".
+   - Choose "Enterprise CA" and "Subordinate CA".
+   - Create a new private key.
+   - Use default cryptographic settings.
+   - Specify a common name for the CA (e.g., `IntermediateCA`).
+   - Save the certificate request to a file (e.g., `C:\certreq\intermediateCA.req`).
+
+4. **Issue Subordinate CA Certificate:**
+   - Transfer the certificate request file to the Root CA machine.
+   - On the Root CA, open the Certification Authority console.
+   - Right-click the CA name > All Tasks > Submit new request.
+   - Approve the pending request: Right-click "Pending Requests" > All Tasks > Issue.
+   - Transfer the issued certificate back to the Intermediate CA machine.
+
+5. **Complete ADCS Configuration:**
+   - Open the Certification Authority console on the Intermediate CA.
+   - Right-click the CA name > All Tasks > Install CA Certificate.
+   - Browse to and select the issued certificate.
+   - Complete the ADCS configuration.
+
+#### Step 3: Set Up the Issuing CA
+
+1. **Install Windows Server and Join Domain:**
+   - Install Windows Server on a new machine and join it to the domain.
+
+2. **Install ADCS Role:**
+   - Open Server Manager, click on "Add roles and features", and select "Active Directory Certificate Services".
+
+3. **Configure ADCS:**
+   - Select "Certification Authority".
+   - Choose "Enterprise CA" and "Subordinate CA".
+   - Create a new private key.
+   - Use default cryptographic settings.
+   - Specify a common name for the CA (e.g., `IssuingCA`).
+   - Save the certificate request to a file (e.g., `C:\certreq\issuingCA.req`).
+
+4. **Issue Subordinate CA Certificate:**
+   - Transfer the certificate request file to the Intermediate CA machine.
+   - On the Intermediate CA, open the Certification Authority console.
+   - Right-click the CA name > All Tasks > Submit new request.
+   - Approve the pending request: Right-click "Pending Requests" > All Tasks > Issue.
+   - Transfer the issued certificate back to the Issuing CA machine.
+
+5. **Complete ADCS Configuration:**
+   - Open the Certification Authority console on the Issuing CA.
+   - Right-click the CA name > All Tasks > Install CA Certificate.
+   - Browse to and select the issued certificate.
+   - Complete the ADCS configuration.
+
+#### Step 4: Configure Certificate Templates
+
+1. **Open Certification Authority Console:**
+   - On the Issuing CA, open the Certification Authority console.
+
+2. **Manage Certificate Templates:**
+   - Right-click "Certificate Templates" > Manage.
+   - Duplicate an existing template (e.g., "User") and configure it as needed (e.g., "CustomUserTemplate").
+   - Set the desired cryptographic settings and validity period.
+
+3. **Enable the Template:**
+   - Right-click "Certificate Templates" > New > Certificate Template to Issue.
+   - Select the newly created template and click "OK".
+
+#### Step 5: Distribute Root CA Certificate
+
+1. **Export Root CA Certificate:**
+   - On the Root CA, open the Certification Authority console.
+   - Right-click the CA name > All Tasks > Export CA Certificate.
+   - Save the certificate to a file (e.g., `RootCA.cer`).
+
+2. **Publish Certificate to Active Directory:**
+   - Transfer the certificate file to a domain-joined machine.
+   - Open Group Policy Management.
+   - Create or edit a Group Policy Object (GPO) that applies to all domain-joined machines.
+   - Navigate to Computer Configuration > Policies > Windows Settings > Security Settings > Public Key Policies > Trusted Root Certification Authorities.
+   - Right-click and select "Import", then browse to and select the Root CA certificate file.
+
+#### Step 6: Configure CRLs
+
+1. **Configure CRL Distribution Points:**
+   - On the Root and Intermediate CAs, open the Certification Authority console.
+   - Right-click the CA name > Properties > Extensions tab.
+   - Add CRL distribution points (e.g., HTTP URL or LDAP path).
+
+2. **Publish CRLs:**
+   - On the Root CA and Intermediate CA, use the following command to publish CRLs:
+     ```bash
+     certutil -crl
+     ```
+
+### Conclusion
+
+This example configuration provides a detailed step-by-step guide to setting up a multi-tier PKI within Microsoft Entra Domain Services using ADCS. It covers the installation and configuration of Root CA, Intermediate CA, and Issuing CA, as well as the configuration of certificate templates, distribution of Root CA certificates, and setup of CRLs. By following these steps, you can create a secure and efficient PKI infrastructure tailored to your organization’s needs.
