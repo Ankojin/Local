@@ -1,0 +1,81 @@
+Troy Berg's PKI Battle Plan
+======================
+
+Part 1) Build the underlying infrastructure
+===========================================
+
+1) Deploy DC (best practices)
+	- install AD DS
+	- test and verify our DNS
+	- deploy a subset of OUs, admin users
+		(AD CS is deployed in part via GPO)
+
+2) Deploy workstations 
+	- Join the domain 
+	- Test and verify
+
+3) Deploy Enterprise CA
+	- Join the domain
+
+4) Deploy Root CA
+	- NOT domain joined
+
+
+Part 2) Build the PKI Hierarchy
+===========================================
+
+1) Deploy Root CA
+
+	- Install AD CS (standalone CA)
+	- Configure AD CS
+		- Claim the root CA role (establish your trust anchor)
+		- Pre-configure the certificate extensions (AIA and CDP/CRL information)
+
+			AIA (Authority Information Access)
+			e.g. http://10.10.10.10/certdata/<ServerDNSName><CaName><CertificateName>
+
+			CRL (Certificate Revocation List)
+			e.g. http://10.10.10.10/certdata/<CaName><CRLNameSuffix><DeltaCRLAllowed>.crl
+
+			Default locations of CRL and Root Certificate
+			C:\Windows\System32\CertServ\CertEnroll
+
+		- Publish the CRL
+		- Export Root Certificate with CA's public key
+	- Export our Root CA, our CRL, and our CA's public key to Enterprise (issuing) CA
+
+2) Deploy our Enterprise CA
+
+	- Install the AD CS role
+		- Claim the Enterprise CA role
+	- Create the trust relationship (PKI hierarchy) with the Root CA
+		- Create the EntCA public key
+		- Install the Root certificate (with public key) on the EntCA
+		- Extend AIA by creating certificate and CRL distribution point
+		- Send a certificate request (with Enterprise public key) to the Root CA
+		- Complete the certificate request process on the Ent CA
+		- Export and install the new .pkb certificate granting issuing authority
+
+Part 3) Distribute the Certificates via GPO
+===========================================
+
+3) Configure our Domain to Utilize the Enterprise CA
+
+	- Populate the eventual IIS publication point for the AIA and CRL
+		- e.g. http://www.troy.net/aia
+		- e.g. http://www.troy.net/crl
+	- Use user and computer templates to create domain certificates and modify key settings
+		- Duplicate, modify and issue templates for users and domain computers
+		- Key settings: Compatibility, General Naming, and Security
+		- Remember special parameters for user settings
+	- Create a GPO to autoenroll users and computers
+		- Computer and Users > Policies > Windows Settings > Security > Public Key Policies > Certificate Enrolment Policy
+		- Computer and Users > Policies > Windows Settings > Security > Public Key Policies > Auto-Enrolment Policy
+	- Simultaneously allow the Root CA to be issued via GPO
+		- Computer > Policies > Windows Settings > Security > Public Key Policies > Trusted Root Certification Authorities
+
+Part 4) Test for Success
+===========================================
+
+4) Verify successful issuing of certificates for domain users and workstations
+
